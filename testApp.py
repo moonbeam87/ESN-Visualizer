@@ -59,12 +59,13 @@ def get_series():
 def calculate_ESN(name, rand_seed, nReservoir, spectralRadius, future, futureTotal):
     data = open(name+".txt").read().split()
     data = np.array(data).astype('float64')
-    sparsity=0.2
-    noise = .0005
-    nReservoir = nReservoir *1
-    spectralRadius = spectralRadius * 1
-    future = future * 1
-    futureTotal = futureTotal * 1
+    n_resevoir = 500
+    sparsity = 0.2
+    rand_seed = 23
+    spectral_radius = 1.2
+    noise = 0.0005
+    future = 1
+    futureTotal = 7
 
 
 
