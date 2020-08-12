@@ -28,14 +28,26 @@ def identity(x):
     return x
 
 
-class ESN():
-
-    def __init__(self, n_inputs, n_outputs, n_reservoir=200,
-                 spectral_radius=0.95, sparsity=0, noise=0.001, input_shift=None,
-                 input_scaling=None, teacher_forcing=True, feedback_scaling=None,
-                 teacher_scaling=None, teacher_shift=None,
-                 out_activation=identity, inverse_out_activation=identity,
-                 random_state=None, silent=True):
+class ESN:
+    def __init__(
+        self,
+        n_inputs,
+        n_outputs,
+        n_reservoir=200,
+        spectral_radius=0.95,
+        sparsity=0,
+        noise=0.001,
+        input_shift=None,
+        input_scaling=None,
+        teacher_forcing=True,
+        feedback_scaling=None,
+        teacher_scaling=None,
+        teacher_shift=None,
+        out_activation=identity,
+        inverse_out_activation=identity,
+        random_state=None,
+        silent=True,
+    ):
         """
         Args:
             n_inputs: nr of input dimensions
@@ -102,11 +114,9 @@ class ESN():
         self.W = W * (self.spectral_radius / radius)
 
         # random input weights:
-        self.W_in = self.random_state_.rand(
-            self.n_reservoir, self.n_inputs) * 2 - 1
+        self.W_in = self.random_state_.rand(self.n_reservoir, self.n_inputs) * 2 - 1
         # random feedback (teacher forcing) weights:
-        self.W_feedb = self.random_state_.rand(
-            self.n_reservoir, self.n_outputs) * 2 - 1
+        self.W_feedb = self.random_state_.rand(self.n_reservoir, self.n_outputs) * 2 - 1
 
     def _update(self, state, input_pattern, output_pattern):
         """performs one update step.
@@ -114,14 +124,16 @@ class ESN():
         to the last state & and feeding in the current input and output patterns
         """
         if self.teacher_forcing:
-            preactivation = (np.dot(self.W, state)
-                             + np.dot(self.W_in, input_pattern)
-                             + np.dot(self.W_feedb, output_pattern))
+            preactivation = (
+                np.dot(self.W, state)
+                + np.dot(self.W_in, input_pattern)
+                + np.dot(self.W_feedb, output_pattern)
+            )
         else:
-            preactivation = (np.dot(self.W, state)
-                             + np.dot(self.W_in, input_pattern))
-        return (np.tanh(preactivation)
-                + self.noise * (self.random_state_.rand(self.n_reservoir) - 0.5))
+            preactivation = np.dot(self.W, state) + np.dot(self.W_in, input_pattern)
+        return np.tanh(preactivation) + self.noise * (
+            self.random_state_.rand(self.n_reservoir) - 0.5
+        )
 
     def _scale_inputs(self, inputs):
         """for each input dimension j: multiplies by the j'th entry in the
@@ -174,8 +186,9 @@ class ESN():
         # step the reservoir through the given input,output pairs:
         states = np.zeros((inputs.shape[0], self.n_reservoir))
         for n in range(1, inputs.shape[0]):
-            states[n, :] = self._update(states[n - 1], inputs_scaled[n, :],
-                                        teachers_scaled[n - 1, :])
+            states[n, :] = self._update(
+                states[n - 1], inputs_scaled[n, :], teachers_scaled[n - 1, :]
+            )
 
         # learn the weights, i.e. find the linear combination of collected
         # network states that is closest to the target output
@@ -186,8 +199,10 @@ class ESN():
         # include the raw inputs:
         extended_states = np.hstack((states, inputs_scaled))
         # Solve for W_out:
-        self.W_out = np.dot(np.linalg.pinv(extended_states[transient:, :]),
-                            self.inverse_out_activation(teachers_scaled[transient:, :])).T
+        self.W_out = np.dot(
+            np.linalg.pinv(extended_states[transient:, :]),
+            self.inverse_out_activation(teachers_scaled[transient:, :]),
+        ).T
 
         # remember the last state for later:
         self.laststate = states[-1, :]
@@ -197,20 +212,20 @@ class ESN():
         # optionally visualize the collected states
         if inspect:
             from matplotlib import pyplot as plt
+
             # (^-- we depend on matplotlib only if this option is used)
-            plt.figure(
-                figsize=(states.shape[0] * 0.0025, states.shape[1] * 0.01))
-            plt.imshow(extended_states.T, aspect='auto',
-                       interpolation='nearest')
+            plt.figure(figsize=(states.shape[0] * 0.0025, states.shape[1] * 0.01))
+            plt.imshow(extended_states.T, aspect="auto", interpolation="nearest")
             plt.colorbar()
 
         if not self.silent:
             print("training error:")
         # apply learned weights to the collected states:
-        pred_train = self._unscale_teacher(self.out_activation(
-            np.dot(extended_states, self.W_out.T)))
+        pred_train = self._unscale_teacher(
+            self.out_activation(np.dot(extended_states, self.W_out.T))
+        )
         if not self.silent:
-            print(np.sqrt(np.mean((pred_train - outputs)**2)))
+            print(np.sqrt(np.mean((pred_train - outputs) ** 2)))
         return pred_train
 
     def predict(self, inputs, continuation=True):
@@ -236,15 +251,15 @@ class ESN():
             lastoutput = np.zeros(self.n_outputs)
 
         inputs = np.vstack([lastinput, self._scale_inputs(inputs)])
-        states = np.vstack(
-            [laststate, np.zeros((n_samples, self.n_reservoir))])
-        outputs = np.vstack(
-            [lastoutput, np.zeros((n_samples, self.n_outputs))])
+        states = np.vstack([laststate, np.zeros((n_samples, self.n_reservoir))])
+        outputs = np.vstack([lastoutput, np.zeros((n_samples, self.n_outputs))])
 
         for n in range(n_samples):
-            states[
-                n + 1, :] = self._update(states[n, :], inputs[n + 1, :], outputs[n, :])
-            outputs[n + 1, :] = self.out_activation(np.dot(self.W_out,
-                                                           np.concatenate([states[n + 1, :], inputs[n + 1, :]])))
+            states[n + 1, :] = self._update(
+                states[n, :], inputs[n + 1, :], outputs[n, :]
+            )
+            outputs[n + 1, :] = self.out_activation(
+                np.dot(self.W_out, np.concatenate([states[n + 1, :], inputs[n + 1, :]]))
+            )
 
         return self._unscale_teacher(self.out_activation(outputs[1:]))

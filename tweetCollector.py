@@ -1,4 +1,4 @@
-#Code is heavily based off https://github.com/feconroses/gather-tweets-from-stream/blob/master/stream.py
+# Code is heavily based off https://github.com/feconroses/gather-tweets-from-stream/blob/master/stream.py
 import tweepy
 import csv
 import ssl
@@ -28,7 +28,6 @@ filename = "IBM-tweets"
 
 # We need to implement StreamListener to use Tweepy to listen to Twitter
 class StreamListener(tweepy.StreamListener):
-
     def on_status(self, status):
 
         try:
@@ -36,18 +35,23 @@ class StreamListener(tweepy.StreamListener):
             tweet_object = status
 
             # Checks if its a extended tweet (>140 characters)
-            if 'extended_tweet' in tweet_object._json:
-                tweet = tweet_object.extended_tweet['full_text']
+            if "extended_tweet" in tweet_object._json:
+                tweet = tweet_object.extended_tweet["full_text"]
             else:
                 tweet = tweet_object.text
 
-            '''Convert all named and numeric character references
+            """Convert all named and numeric character references
             (e.g. &gt;, &#62;, &#x3e;) in the string s to the
-            corresponding Unicode characters'''
-            tweet = (tweet.replace('&amp;', '&').replace('&lt;', '<')
-                     .replace('&gt;', '>').replace('&quot;', '"')
-                     .replace('&#39;', "'").replace(';', " ")
-                     .replace(r'\u', " "))
+            corresponding Unicode characters"""
+            tweet = (
+                tweet.replace("&amp;", "&")
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&quot;", '"')
+                .replace("&#39;", "'")
+                .replace(";", " ")
+                .replace(r"\u", " ")
+            )
 
             # Save the keyword that matches the stream
             keyword_matches = []
@@ -65,28 +69,54 @@ class StreamListener(tweepy.StreamListener):
             tweetUrl = "https://twitter.com/statuses/" + str(tweetId)
 
             # Exclude retweets, too many mentions and too many hashtags
-            if not any((('RT @' in tweet, 'RT' in tweet,
-                       tweet.count('@') >= 2, tweet.count('#') >= 3))):
+            if not any(
+                (
+                    (
+                        "RT @" in tweet,
+                        "RT" in tweet,
+                        tweet.count("@") >= 2,
+                        tweet.count("#") >= 3,
+                    )
+                )
+            ):
 
                 # Saves the tweet information in a new row of the CSV file
-                writer.writerow([tweet, keywords_strings, timeTweet,
-                                user, source, tweetId, tweetUrl])
+                writer.writerow(
+                    [
+                        tweet,
+                        keywords_strings,
+                        timeTweet,
+                        user,
+                        source,
+                        tweetId,
+                        tweetUrl,
+                    ]
+                )
 
         except Exception as e:
-            print('Encountered Exception:', e)
+            print("Encountered Exception:", e)
             pass
 
 
 def work():
 
     # Opening a CSV file to save the gathered tweets
-    with open(filename+".csv", 'w') as file:
+    with open(filename + ".csv", "w") as file:
         global writer
         writer = csv.writer(file)
 
         # Add a header row to the CSV
-        writer.writerow(["Tweet", "Matched Keywords", "Date", "User",
-                        "Source", "Tweet ID", "Tweet URL"])
+        writer.writerow(
+            [
+                "Tweet",
+                "Matched Keywords",
+                "Date",
+                "User",
+                "Source",
+                "Tweet ID",
+                "Tweet URL",
+            ]
+        )
 
         # Initializing the twitter streap Stream
         try:
@@ -101,8 +131,7 @@ def work():
             streamingAPI.filter(track=[keywords])
 
         # Stop temporarily when getting a timeout or connection error
-        except (Timeout, ssl.SSLError, ReadTimeoutError,
-                ConnectionError) as exc:
+        except (Timeout, ssl.SSLError, ReadTimeoutError, ConnectionError) as exc:
             print("Timeout/connection error...waiting ~15 minutes to continue")
             time.sleep(1001)
             streamingAPI = tweepy.streaming.Stream(auth, StreamListener())
@@ -110,7 +139,7 @@ def work():
 
         # Stop temporarily when getting other errors
         except tweepy.TweepError as e:
-            if 'Failed to send request:' in e.reason:
+            if "Failed to send request:" in e.reason:
                 print("Time out error caught.")
                 time.sleep(1001)
                 streamingAPI = tweepy.streaming.Stream(auth, StreamListener())
@@ -120,6 +149,6 @@ def work():
                 pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     work()
